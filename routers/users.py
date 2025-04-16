@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from starlette import status
 
-from database import get_session
+from routers.deps import get_session
 from services.auth import get_current_user
 import crud.users as crud_users
 router = APIRouter(

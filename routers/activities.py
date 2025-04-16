@@ -5,7 +5,7 @@ from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from starlette import status
 
-from database import get_session
+from routers.deps import get_session
 from models import Activity
 from schemas.activities import ActivityCreationRequest, ActivityResponse
 import crud.activities as crud_activities
@@ -18,15 +18,14 @@ router = APIRouter(
     tags=["activities"],
 )
 
-
-@router.get("/", status_code=status.HTTP_200_OK, response_model=List[ActivityResponse])
-async def get_activities(session: Session = Depends(get_session), user: dict = Depends(get_current_user)):
-    return crud_activities.get_all(session)
-
 @router.get("/{activity_id}", status_code=status.HTTP_200_OK, response_model=ActivityResponse)
 async def get_activity(activity_id: int, session: Session = Depends(get_session),
                        user: dict = Depends(get_current_user)):
     return crud_activities.get_by_id(session, activity_id)
+
+@router.get("/", status_code=status.HTTP_200_OK, response_model=List[ActivityResponse])
+async def get_activities(session: Session = Depends(get_session), user: dict = Depends(get_current_user)):
+    return crud_activities.get_all(session)
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ActivityResponse)
 async def create_activity(activity_creation_request: ActivityCreationRequest, session: Session = Depends(get_session),
