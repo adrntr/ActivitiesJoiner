@@ -1,10 +1,12 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
+from starlette import status
+
 import crud.users as crud_users
-from database import get_session
+from routers.deps import get_session
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 # oauth2_bearer gets the token from auth/token enpoint

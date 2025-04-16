@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 from typing_extensions import Annotated
 
-from database import get_session
+from routers.deps import get_session
 from models import User
 from schemas.auth import RegisterRequest
 import crud.users as crud_users
