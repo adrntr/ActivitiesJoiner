@@ -37,3 +37,10 @@ starlette==0.44.0
 tomli==2.2.1
 typing_extensions==4.13.0
 uvicorn==0.33.0
+
+SQLAlchemy-Utils~=0.41.2
+typing_extensions~=4.13.0
+pydantic-settings~=2.8.1
+typing_extensions~=4.13.0
+alembic~=1.15.2
+typing_extensions~=4.13.0

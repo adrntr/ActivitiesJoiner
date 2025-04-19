@@ -16,7 +16,7 @@ async def get_latitude_longitude(name) -> Tuple[float, float]:
 
 
 async def get_or_create_location(name: str, session: Session) -> Location:
-    latitude, longitude = get_latitude_longitude(name)
+    latitude, longitude = await get_latitude_longitude(name)
     # If this function is not used by a router this should be refactored.
     if not latitude or not longitude:
         raise HTTPException(
