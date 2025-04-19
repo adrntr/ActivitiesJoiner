@@ -1,9 +1,9 @@
-from database import SessionLocal
+from database import get_session
 
 
-def get_session():
-    session = SessionLocal()
+def get_db():
+    db = get_session()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
+        db.close()

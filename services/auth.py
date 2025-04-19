@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
@@ -14,7 +14,7 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
 SECRET_KEY = '0a5fe037e6efb46e6bb54f6a66b2c5b239a82a7dcca78368bfc46141cbaff23f'
 ALGORITHM = 'HS256'
 
-def authenticate_user(username: str, password: str, session: Session = Depends(get_session())):
+def authenticate_user(username: str, password: str, session: Session = Depends(get_session)):
     """
     Return the user from the database if it exist and the password is correct.
     """

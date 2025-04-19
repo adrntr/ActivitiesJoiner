@@ -53,5 +53,5 @@ class Location(Base):
 
     activities = relationship("Activity", back_populates="location")
 
-# TODO: Continue with location/create migration and modify endpoints
+
 
