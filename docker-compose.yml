@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: app_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  web:
+    build: .
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_NAME: app_db
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    command: sh -c "./wait-for.sh db:5432 -- alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+  test:
+    build: .
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_NAME: test_db
+    volumes:
+      - .:/code
+    command: bash -c "alembic upgrade head && pytest --maxfail=1 --disable-warnings -v"
+
+volumes:
+  postgres_data:

@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, Table, select, func, Float
+from datetime import datetime
+
+from sqlalchemy import Column, String, Integer, ForeignKey, Table, select, func, Float, DateTime, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
-
 from database import Base
 
 activity_participants = Table(
@@ -20,7 +21,6 @@ class User(Base):
     activities_joined = relationship("Activity", secondary="activity_participants", back_populates="participants")
     activities_created = relationship("Activity", back_populates="creator")
 
-
 class Activity(Base):
     __tablename__ = 'activities'
     id = Column(Integer, primary_key=True)
@@ -28,6 +28,10 @@ class Activity(Base):
     creator_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     max_participants = Column(Integer, nullable=False, default=1000)
     location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+
+    start_datetime = Column(DateTime, nullable=False, default=datetime.now())
+    end_datetime = Column(DateTime, nullable=False, default=datetime.now())
+    #recurrence_rule = Column(String, nullable=True)
 
     creator = relationship("User", back_populates="activities_created")
     participants = relationship("User", secondary="activity_participants", back_populates="activities_joined")

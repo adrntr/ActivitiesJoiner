@@ -37,8 +37,30 @@ async def get_activities(session: Session = Depends(get_db), user: dict = Depend
 async def create_activity(activity_creation_request: ActivityCreationRequest, session: Session = Depends(get_db),
                           user: dict = Depends(get_current_user)):
     location_model = await get_or_create_location(activity_creation_request.location.name, session)
-    activity_model = Activity(creator_id=user["user_id"], description=activity_creation_request.description,
-                              max_participants=activity_creation_request.max_participants, location=location_model)
+    activity_model = Activity(creator_id=user["user_id"],
+                              description=activity_creation_request.description,
+                              max_participants=activity_creation_request.max_participants,
+                              location=location_model,
+                              start_datetime=activity_creation_request.start_datetime,
+                              end_datetime=activity_creation_request.end_datetime)
+    return crud_activities.create(session, activity_model)
+
+@router.put("/{activity_id}", status_code=status.HTTP_200_OK, response_model=ActivityResponse)
+async def update_activity(activity_id: int, activity_creation_request: ActivityCreationRequest, session: Session = Depends(get_db),
+                          user: dict = Depends(get_current_user)):
+    activity_model = crud_activities.get_by_id(session, activity_id)
+    if not activity_model:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+    if activity_model.creator_id != user["user_id"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are not allowed to edit this activity")
+    if activity_creation_request.max_participants < len(activity_model.participants):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot remove more people than there are")
+    location_model = await get_or_create_location(activity_creation_request.location.name, session)
+    activity_model.description = activity_creation_request.description
+    activity_model.max_participants = activity_creation_request.max_participants
+    activity_model.location = location_model
+    activity_model.start_datetime = activity_creation_request.start_datetime
+    activity_model.end_datetime = activity_creation_request.end_datetime
     return crud_activities.create(session, activity_model)
 
 

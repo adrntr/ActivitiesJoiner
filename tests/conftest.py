@@ -13,7 +13,7 @@ from services.auth import bcrypt_context, get_current_user
 
 @pytest.fixture(scope="session", autouse=True)
 def verify_test_env():
-    assert settings.ENVIRONMENT == "testing", "Tests must be run with ENVIRONMENT=testing"
+    assert "test" in settings.DB_NAME , "The db being used is not test"
 
 
 @pytest.fixture(scope="session")
