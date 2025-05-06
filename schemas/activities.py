@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, model_validator, field_validator
+from pydantic import BaseModel, model_validator, field_validator, Field
 from typing import List, Optional
 from schemas.users import UserOut
 
@@ -19,7 +19,7 @@ class LocationResponse(BaseModel):
 
 class ActivityCreationRequest(BaseModel):
     description: str
-    max_participants: int
+    max_participants: int = Field(default=None, gt=0)
     location: LocationRequest
     start_datetime: datetime
     end_datetime: datetime
@@ -36,6 +36,21 @@ class ActivityCreationRequest(BaseModel):
         if self.start_datetime > self.end_datetime:
             raise ValueError('start_date must be before end_date')
         return self
+
+
+class ActivityUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    max_participants: Optional[int] = Field(default=None, gt=0)
+    location: Optional[LocationRequest] = None
+    start_datetime: Optional[datetime] = None
+    end_datetime: Optional[datetime] = None
+
+    @field_validator("start_datetime", "end_datetime")
+    @classmethod
+    def ensure_timezone_aware(cls, value: datetime, info):
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            raise ValueError(f"{info.field_name} must include a timezone (e.g., use 'Z' or '+00:00')")
+        return value
 
 
 class ActivityResponse(BaseModel):

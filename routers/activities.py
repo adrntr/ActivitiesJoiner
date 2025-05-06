@@ -7,7 +7,7 @@ from starlette import status
 
 from routers.deps import get_db
 from models import Activity
-from schemas.activities import ActivityCreationRequest, ActivityResponse
+from schemas.activities import ActivityCreationRequest, ActivityResponse, ActivityUpdateRequest
 import crud.activities as crud_activities
 import crud.users as crud_users
 from services.auth import get_current_user
@@ -46,21 +46,32 @@ async def create_activity(activity_creation_request: ActivityCreationRequest, se
     return crud_activities.create(session, activity_model)
 
 @router.put("/{activity_id}", status_code=status.HTTP_200_OK, response_model=ActivityResponse)
-async def update_activity(activity_id: int, activity_creation_request: ActivityCreationRequest, session: Session = Depends(get_db),
+async def update_activity(activity_id: int, activity_update_request: ActivityUpdateRequest, session: Session = Depends(get_db),
                           user: dict = Depends(get_current_user)):
     activity_model = crud_activities.get_by_id(session, activity_id)
     if not activity_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
     if activity_model.creator_id != user["user_id"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are not allowed to edit this activity")
-    if activity_creation_request.max_participants < len(activity_model.participants):
+    if activity_update_request.max_participants and activity_update_request.max_participants < len(activity_model.participants):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot remove more people than there are")
-    location_model = await get_or_create_location(activity_creation_request.location.name, session)
-    activity_model.description = activity_creation_request.description
-    activity_model.max_participants = activity_creation_request.max_participants
-    activity_model.location = location_model
-    activity_model.start_datetime = activity_creation_request.start_datetime
-    activity_model.end_datetime = activity_creation_request.end_datetime
+    if activity_update_request.location:
+        location_model = await get_or_create_location(activity_update_request.location.name, session)
+        activity_model.location = location_model
+
+    start = activity_update_request.start_datetime or activity_model.start_datetime
+    end = activity_update_request.end_datetime or activity_model.end_datetime
+
+    if start >= end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Start datetime must be before end datetime")
+
+    activity_model.start_datetime = start
+    activity_model.end_datetime = end
+
+    activity_model.description = activity_update_request.description if activity_update_request.description else activity_model.description
+    activity_model.max_participants = activity_update_request.max_participants if activity_update_request.max_participants else activity_model.max_participants
+
     return crud_activities.create(session, activity_model)
 
 
