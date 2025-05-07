@@ -7,7 +7,7 @@ from starlette import status
 
 from routers.deps import get_db
 from models import Activity
-from schemas.activities import ActivityCreationRequest, ActivityResponse, ActivityUpdateRequest
+from schemas.activities import ActivityCreationRequest, ActivityResponse, ActivityUpdateRequest, ActivityFilter
 import crud.activities as crud_activities
 import crud.users as crud_users
 from services.auth import get_current_user
@@ -29,8 +29,8 @@ async def get_activity(activity_id: int, session: Session = Depends(get_db),
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=List[ActivityResponse])
-async def get_activities(session: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    return crud_activities.get_all(session)
+async def get_activities(filters: ActivityFilter = Depends(), session: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    return crud_activities.search(session, filters)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=ActivityResponse)

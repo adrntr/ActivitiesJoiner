@@ -38,14 +38,19 @@ class Activity(Base):
     location = relationship("Location", back_populates="activities")
 
     @hybrid_property
-    def free_places(self):
+    def free_places(self) -> int:
         return self.max_participants - len(self.participants)
 
     @free_places.expression
-    def free_places(cls):
+    def free_places(cls) -> int:
+        # select(func.count(...))                               -> Count how many rows match
+        # select(func.count(activity_participants.c.user_id))   -> Count how many user_id are in activity_participants table
+        # .where(activity_participants.c.activity_id == cls.id) -> Only count the user in this specific activity
+        # correlate(cls)                                        -> This subquery depends on cls.id — it's different for each Activity row in the outer query.
+        # scalar_subquery()                                     -> I want the value
         return (
             cls.max_participants -
-            select(func.count(activity_participants.c.user_id)).where(activity_participants.c.activiy_id == cls.id).correlate(cls).scalar_subquery()
+            select(func.count(activity_participants.c.user_id)).where(activity_participants.c.activity_id == cls.id).correlate(cls).scalar_subquery()
         )
 
 class Location(Base):

@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, model_validator, field_validator, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 from schemas.users import UserOut
 
 
@@ -65,3 +65,16 @@ class ActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ActivityFilter(BaseModel):
+    limit: int = Field(100, gt=0, le=100)
+    offset: int = Field(0, ge=0)
+    order_by: Literal["start_datetime", "end_datetime"] = "start_datetime"
+
+    creator_id: Optional[int] = None
+    description: Optional[str] = None
+    start_after: Optional[datetime] = None
+    end_before: Optional[datetime] = None
+    min_free_places: Optional[int] = None
+
+    #TODO: add location filter
