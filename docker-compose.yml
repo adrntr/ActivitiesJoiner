@@ -25,17 +25,5 @@ services:
       - "8000:8000"
     command: sh -c "./wait-for.sh db:5432 -- alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
-  test:
-    build: .
-    depends_on:
-      - db
-    env_file: .env
-    environment:
-      DB_HOST: db
-      DB_NAME: test_db
-    volumes:
-      - .:/code
-    command: bash -c "alembic upgrade head && pytest --maxfail=1 --disable-warnings -v"
-
 volumes:
   postgres_data:

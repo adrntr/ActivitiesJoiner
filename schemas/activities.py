@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, model_validator, field_validator, Field
+from pydantic import BaseModel, model_validator, field_validator, Field, ConfigDict
 from typing import List, Optional, Literal
 from schemas.users import UserOut
 
@@ -13,8 +13,7 @@ class LocationResponse(BaseModel):
     latitude: float
     longitude: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActivityCreationRequest(BaseModel):
@@ -63,8 +62,7 @@ class ActivityResponse(BaseModel):
     start_datetime: datetime
     end_datetime: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ActivityFilter(BaseModel):
     limit: int = Field(100, gt=0, le=100)
