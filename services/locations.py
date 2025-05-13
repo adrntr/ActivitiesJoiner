@@ -23,7 +23,8 @@ async def get_or_create_location(name: str, session: Session) -> Location:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Location not found"
         )
-    if existing_location := crud_locations.get_location(session, latitude, longitude):
+    if existing_location := crud_locations.get(session, latitude, longitude):
         return existing_location
 
-    return crud_locations.create_location(session, name, latitude, longitude)
+    location = Location(name=name, latitude=latitude, longitude=longitude)
+    return crud_locations.create(session, location)

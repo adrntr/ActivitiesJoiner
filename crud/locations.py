@@ -1,11 +1,11 @@
 from models import Location
 
 
-def get_location(session, latitude, longitude):
+def get(session, latitude, longitude):
     return session.query(Location).filter(Location.latitude == latitude, Location.longitude == longitude).first()
 
-def create_location(session, name, latitude, longitude):
-    location = Location(name=name, latitude=latitude, longitude=longitude)
+def create(session, location):
+    #TODO: is is the same that activity...
     session.add(location)
     session.commit()
     session.refresh(location)

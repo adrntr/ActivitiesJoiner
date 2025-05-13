@@ -26,7 +26,7 @@ async def register(register_request: RegisterRequest, session: Session = Depends
     create_user_dict["hashed_password"] = bcrypt_context.hash(register_request.password)
     create_user_dict.pop('password')
     new_user = User(**create_user_dict)
-    return crud_users.create_user(session, new_user)
+    return crud_users.create(session, new_user)
 
 @router.post("/token")
 async def create_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
