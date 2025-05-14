@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASSWORD: str = ""
     DB_NAME: str = "app_db"
+    SECRET_KEY: str = ""
+    ALGORITHM: str = "HS256"
 
     model_config = {
         "env_file": str(BASE_DIR / ".env")

@@ -36,6 +36,15 @@ DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=<yourpassword>
 DB_NAME=app_db
+SECRET_KEY=changeme
+ALGORITHM=HS256
+```
+### 3. Generate a `SECRET_KEY`
+
+To generate a secure secret key (used for JWT and other cryptographic features), you can run:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 > Do **not** commit your `.env` file — it’s ignored by Git.

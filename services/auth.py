@@ -6,13 +6,13 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 import crud.users as crud_users
+from core.config import settings
 from routers.deps import get_session
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-# oauth2_bearer gets the token from auth/token enpoint
+# oauth2_bearer gets the token from auth/token endpoint
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
-SECRET_KEY = '0a5fe037e6efb46e6bb54f6a66b2c5b239a82a7dcca78368bfc46141cbaff23f'
-ALGORITHM = 'HS256'
+
 
 def authenticate_user(username: str, password: str, session: Session = Depends(get_session)):
     """
@@ -31,11 +31,11 @@ def create_token(username: str, user_id: str):
     sub: subject
     """
     encode = {'sub': username, "id": user_id}
-    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 async def get_current_user(token: str = Depends(oauth2_bearer)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
         if username is None or user_id is None:
