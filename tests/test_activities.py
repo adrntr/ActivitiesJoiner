@@ -73,8 +73,6 @@ def test_get_activities_not_empty(session, client, user, activity):
 
 
 # create activity
-
-@pytest.mark.asyncio
 @patch("routers.activities.get_or_create_location", new_callable=AsyncMock)
 def test_create_activity(mock_get_location, session, client, user):
     mock_location = Location(id=99, name="Test Location", latitude=40.7128, longitude=-74.0060)
