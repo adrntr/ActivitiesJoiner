@@ -20,7 +20,7 @@ async def get_or_create_location(name: str, session: Session) -> Location:
     # If this function is not used by a router this should be refactored.
     if not latitude or not longitude:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Location not found"
         )
     if existing_location := crud_locations.get(session, latitude, longitude):

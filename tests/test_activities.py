@@ -73,15 +73,78 @@ def test_get_activities_not_empty(session, client, user, activity):
 
 
 # create activity
+def build_activity_body(
+    description="Activity test",
+    max_participants=10,
+    location=None,
+    start_datetime=None,
+    end_datetime=None,
+):
+    location = location or {"name": "Test Location"}
+    start_datetime = start_datetime or datetime.now(timezone.utc).isoformat()
+    end_datetime = end_datetime or (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+
+    return {
+        "description": description,
+        "max_participants": max_participants,
+        "location": location,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+    }
+
+
 @patch("routers.activities.get_or_create_location", new_callable=AsyncMock)
 def test_create_activity(mock_get_location, session, client, user):
     mock_location = Location(id=99, name="Test Location", latitude=40.7128, longitude=-74.0060)
     mock_get_location.return_value = mock_location
-    body = {"description": "activity test",
-            "max_participants": 10,
-            "location": {"name": "Test Location"},
-            "start_datetime": datetime.now(timezone.utc).isoformat(),
-            "end_datetime": (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()}
+
+    body = build_activity_body()
     response = client.post("/activities", json=body)
+
     assert response.status_code == status.HTTP_201_CREATED
     mock_get_location.assert_awaited_once_with("Test Location", ANY)
+
+
+@pytest.mark.parametrize(
+    "description, max_participants, location, expected_status, expected_error",
+    [
+        ("", 10, {"name": "Test Location"}, status.HTTP_422_UNPROCESSABLE_ENTITY, "description"),
+        ("Activity test", 0, {"name": "Test Location"}, status.HTTP_422_UNPROCESSABLE_ENTITY, "max_participants"),
+        ("Activity test", 10, "Test Location", status.HTTP_422_UNPROCESSABLE_ENTITY, "location"),
+    ],
+)
+def test_create_activity_invalid_inputs(session, client, user, description, max_participants, location, expected_status, expected_error):
+    body = build_activity_body(description=description, max_participants=max_participants, location=location)
+    response = client.post("/activities", json=body)
+    assert response.status_code == expected_status
+    if expected_error:
+        assert expected_error.lower() in response.text.lower()
+
+
+@patch("services.locations.get_latitude_longitude", new_callable=AsyncMock)
+def test_create_activity_location_not_found(mock_get_latitude_longitude, session, client, user):
+    mock_get_latitude_longitude.return_value = (None, None)
+
+    body = build_activity_body()
+    response = client.post("/activities", json=body)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    data = response.json()
+    assert "location not found" in data["error"].lower()
+
+
+@pytest.mark.parametrize(
+    "start_dt, end_dt",
+    [
+        (datetime.now(timezone(timedelta(hours=-5), 'EST')), datetime.now(timezone.utc) + timedelta(hours=2)),
+        (datetime.now(timezone.utc), datetime.now(timezone(timedelta(hours=5), 'EST')) + timedelta(hours=2)),
+    ],
+)
+def test_create_activity_incorrect_datetime_zones(session, client, user, start_dt, end_dt):
+    body = build_activity_body(
+        start_datetime=start_dt.isoformat(),
+        end_datetime=end_dt.isoformat(),
+    )
+    response = client.post("/activities", json=body)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "datetime must be in utc" in response.text.lower()

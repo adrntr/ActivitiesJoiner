@@ -17,7 +17,7 @@ class LocationResponse(BaseModel):
 
 
 class ActivityCreationRequest(BaseModel):
-    description: str
+    description: str = Field(..., min_length=1)
     max_participants: int = Field(default=None, gt=0)
     location: LocationRequest
     start_datetime: datetime
@@ -25,9 +25,9 @@ class ActivityCreationRequest(BaseModel):
 
     @field_validator("start_datetime", "end_datetime")
     @classmethod
-    def ensure_timezone_aware(cls, value: datetime, info):
-        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
-            raise ValueError(f"{info.field_name} must include a timezone (e.g., use 'Z' or '+00:00')")
+    def must_be_utc(cls, value):
+        if value.tzinfo is None or value.utcoffset() != timezone.utc.utcoffset(value):
+            raise ValueError("Datetime must be in UTC")
         return value
 
     @model_validator(mode='after')
