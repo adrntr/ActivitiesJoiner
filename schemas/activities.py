@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, model_validator, field_validator, Field, ConfigDict
 from typing import List, Optional, Literal
 from schemas.users import UserOut
@@ -46,9 +46,9 @@ class ActivityUpdateRequest(BaseModel):
 
     @field_validator("start_datetime", "end_datetime")
     @classmethod
-    def ensure_timezone_aware(cls, value: datetime, info):
-        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
-            raise ValueError(f"{info.field_name} must include a timezone (e.g., use 'Z' or '+00:00')")
+    def must_be_utc(cls, value):
+        if value.tzinfo is None or value.utcoffset() != timezone.utc.utcoffset(value):
+            raise ValueError("Datetime must be in UTC")
         return value
 
 
@@ -63,6 +63,7 @@ class ActivityResponse(BaseModel):
     end_datetime: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ActivityFilter(BaseModel):
     limit: int = Field(100, gt=0, le=100)
