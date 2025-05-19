@@ -52,7 +52,7 @@ async def update_activity(activity_id: int, activity_update_request: ActivityUpd
     if not activity_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
     if activity_model.creator_id != user["user_id"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are not allowed to edit this activity")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to edit this activity")
     if activity_update_request.max_participants and activity_update_request.max_participants < len(activity_model.participants):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot remove more people than there are")
     if activity_update_request.location:

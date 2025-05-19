@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi import HTTPException
@@ -85,7 +85,7 @@ def incorrect_user(session: Session):
     app.dependency_overrides.clear()
 
 @pytest.fixture
-def activity(session: Session):
+def activity_without_participants(session: Session):
     user = User(username="test_user", hashed_password=bcrypt_context.hash("test_password"))
     user_model = crud_users.create(session, user)
     location = Location(name="test location", latitude=37.7749, longitude=-122.4194)
@@ -94,8 +94,27 @@ def activity(session: Session):
                         max_participants=10,
                         creator_id=user_model.id,
                         location_id=location_model.id,
-                        start_datetime=datetime.now(),
-                        end_datetime=datetime.now() + timedelta(hours=2))
+                        start_datetime=datetime.now(timezone.utc),
+                        end_datetime=datetime.now(timezone.utc) + timedelta(hours=2))
     activity_model = crud_activities.create(session, activity)
+    return activity_model
+
+@pytest.fixture
+def activity_with_participants(session: Session, user: User):
+    user_a = User(username="test_user_a", hashed_password=bcrypt_context.hash("test_password"))
+    user_model_a = crud_users.create(session, user_a)
+    user_b = User(username="test_user_b", hashed_password=bcrypt_context.hash("test_password"))
+    user_model_b = crud_users.create(session, user_b)
+    location = Location(name="test location", latitude=37.7749, longitude=-122.4194)
+    location_model = crud_locations.create(session, location)
+    activity = Activity(description="test activity",
+                        max_participants=10,
+                        creator_id=user.id,
+                        location_id=location_model.id,
+                        start_datetime=datetime.now(timezone.utc),
+                        end_datetime=datetime.now(timezone.utc) + timedelta(hours=2))
+    activity_model = crud_activities.create(session, activity)
+    crud_activities.add_participant(session, activity, user_model_a)
+    crud_activities.add_participant(session, activity, user_model_b)
     return activity_model
 

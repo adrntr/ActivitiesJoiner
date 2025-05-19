@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Table, select, func, Float, DateTime, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -29,8 +29,8 @@ class Activity(Base):
     max_participants = Column(Integer, nullable=False, default=1000)
     location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
 
-    start_datetime = Column(DateTime, nullable=False, default=datetime.now())
-    end_datetime = Column(DateTime, nullable=False, default=datetime.now())
+    start_datetime = Column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
+    end_datetime = Column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
     #recurrence_rule = Column(String, nullable=True)
 
     creator = relationship("User", back_populates="activities_created")

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from pydantic import BaseModel, model_validator, field_validator, Field, ConfigDict
+from pydantic import BaseModel, model_validator, field_validator, Field, ConfigDict, field_serializer
 from typing import List, Optional, Literal
 from schemas.users import UserOut
 
@@ -63,6 +63,11 @@ class ActivityResponse(BaseModel):
     end_datetime: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("start_datetime", "end_datetime")
+    def serialize_utc(self, value: datetime, _info):
+        return value.isoformat()
+
 
 
 class ActivityFilter(BaseModel):

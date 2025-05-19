@@ -15,8 +15,8 @@ def test_get_activity_not_found(session, client, user):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_get_activity_found(session, client, user, activity):
-    response = client.get(f"/activities/{activity.id}")
+def test_get_activity_found(session, client, user, activity_without_participants):
+    response = client.get(f"/activities/{activity_without_participants.id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     activity_response = ActivityResponse(**data)  # pydantic validation
@@ -57,28 +57,28 @@ def test_get_activities_empty(session, client, user):
     assert response.json() == []
 
 
-def test_get_activities_not_empty(session, client, user, activity):
-    response = client.get("/activities", params={"creator_id": activity.creator_id,
+def test_get_activities_not_empty(session, client, user, activity_without_participants):
+    response = client.get("/activities", params={"creator_id": activity_without_participants.creator_id,
                                                  "start_after": datetime.now() - timedelta(hours=2)})
     data = response.json()
     assert response.status_code == status.HTTP_200_OK
     assert len(data) == 1
     assert isinstance(data, list)
-    assert data[0]["description"] == activity.description
-    assert data[0]["max_participants"] == activity.max_participants
+    assert data[0]["description"] == activity_without_participants.description
+    assert data[0]["max_participants"] == activity_without_participants.max_participants
     assert not data[0]["participants"]
-    assert data[0]["location"]["name"] == activity.location.name
-    assert datetime.fromisoformat(data[0]["start_datetime"]) == activity.start_datetime
-    assert datetime.fromisoformat(data[0]["end_datetime"]) == activity.end_datetime
+    assert data[0]["location"]["name"] == activity_without_participants.location.name
+    assert datetime.fromisoformat(data[0]["start_datetime"]) == activity_without_participants.start_datetime
+    assert datetime.fromisoformat(data[0]["end_datetime"]) == activity_without_participants.end_datetime
 
 
 # create activity
 def build_activity_body(
-    description="Activity test",
-    max_participants=10,
-    location=None,
-    start_datetime=None,
-    end_datetime=None,
+        description="Activity test",
+        max_participants=10,
+        location=None,
+        start_datetime=None,
+        end_datetime=None,
 ):
     location = location or {"name": "Test Location"}
     start_datetime = start_datetime or datetime.now(timezone.utc).isoformat()
@@ -113,7 +113,8 @@ def test_create_activity(mock_get_location, session, client, user):
         ("Activity test", 10, "Test Location", status.HTTP_422_UNPROCESSABLE_ENTITY, "location"),
     ],
 )
-def test_create_activity_invalid_inputs(session, client, user, description, max_participants, location, expected_status, expected_error):
+def test_create_activity_invalid_inputs(session, client, user, description, max_participants, location, expected_status,
+                                        expected_error):
     body = build_activity_body(description=description, max_participants=max_participants, location=location)
     response = client.post("/activities", json=body)
     assert response.status_code == expected_status
@@ -148,3 +149,48 @@ def test_create_activity_incorrect_datetime_zones(session, client, user, start_d
     response = client.post("/activities", json=body)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "datetime must be in utc" in response.text.lower()
+
+
+# Update Activity
+def test_update_activity_not_found(session, client, user):
+    response = client.put(f"/activities/999", json={})
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_update_activity_not_owner(session, client, user, activity_without_participants):
+    response = client.put(f"/activities/{activity_without_participants.id}", json={})
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_update_activity_max_participants_error(session, client, user, activity_with_participants):
+    response = client.put(f"/activities/{activity_with_participants.id}", json={"max_participants": 1})
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "you cannot remove more people than there are" in response.text.lower()
+
+
+def test_update_activity_low_end_time(session, client, user, activity_with_participants):
+    response = client.put(f"/activities/{activity_with_participants.id}",
+                          json={"end_datetime": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()})
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "start datetime must be before end datetime" in response.text.lower()
+
+@patch("services.locations.get_latitude_longitude", new_callable=AsyncMock)
+def test_update_activity_ok(mock_get_latitude_longitude, session, client, user, activity_with_participants):
+    mock_get_latitude_longitude.return_value = (13.123,13.123)
+    start_datetime = datetime.now(timezone.utc) - timedelta(hours=2)
+    end_datetime = datetime.now(timezone.utc) + timedelta(hours=2)
+    response = client.put(f"/activities/{activity_with_participants.id}",
+                          json={
+                              "location":{"name": "New Location"},
+                              "start_datetime": start_datetime.isoformat(),
+                              "end_datetime": end_datetime.isoformat(),
+                              "description": "New Description",
+                              "max_participants": 3,
+                          })
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["location"]["name"] == "New Location"
+    assert data["description"] == "New Description"
+    assert data["max_participants"] == 3
+    assert data["start_datetime"] == start_datetime.isoformat()
+    assert data["end_datetime"] == end_datetime.isoformat()
