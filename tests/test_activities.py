@@ -174,14 +174,15 @@ def test_update_activity_low_end_time(session, client, user, activity_with_parti
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "start datetime must be before end datetime" in response.text.lower()
 
+
 @patch("services.locations.get_latitude_longitude", new_callable=AsyncMock)
 def test_update_activity_ok(mock_get_latitude_longitude, session, client, user, activity_with_participants):
-    mock_get_latitude_longitude.return_value = (13.123,13.123)
+    mock_get_latitude_longitude.return_value = (13.123, 13.123)
     start_datetime = datetime.now(timezone.utc) - timedelta(hours=2)
     end_datetime = datetime.now(timezone.utc) + timedelta(hours=2)
     response = client.put(f"/activities/{activity_with_participants.id}",
                           json={
-                              "location":{"name": "New Location"},
+                              "location": {"name": "New Location"},
                               "start_datetime": start_datetime.isoformat(),
                               "end_datetime": end_datetime.isoformat(),
                               "description": "New Description",
@@ -194,3 +195,38 @@ def test_update_activity_ok(mock_get_latitude_longitude, session, client, user, 
     assert data["max_participants"] == 3
     assert data["start_datetime"] == start_datetime.isoformat()
     assert data["end_datetime"] == end_datetime.isoformat()
+
+
+# Join Activity
+
+def test_join_activity_not_found(session, client, user):
+    response = client.post("/activities/999/participants")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_join_activity_full(session, client, user, activity_with_participants):
+    # Make the activity to be full
+    response = client.put(f"/activities/{activity_with_participants.id}",
+                          json={"max_participants": len(activity_with_participants.participants)})
+    assert response.status_code == status.HTTP_200_OK
+    # Try to join
+    response = client.post(f"/activities/{activity_with_participants.id}/participants")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "no free places" in response.text.lower()
+
+def test_join_activity_already_joined(session, client, user, activity_with_participants):
+    response = client.post(f"/activities/{activity_with_participants.id}/participants")
+    assert response.status_code == status.HTTP_201_CREATED
+    response = client.post(f"/activities/{activity_with_participants.id}/participants")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "already participated" in response.text.lower()
+
+def test_join_activity_ok(session, client, user, activity_with_participants):
+    response = client.post(f"/activities/{activity_with_participants.id}/participants")
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert {"id": user.id, "username": user.username} in data["participants"]
+
+
+
+
