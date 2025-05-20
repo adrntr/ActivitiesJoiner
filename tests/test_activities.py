@@ -6,7 +6,9 @@ from starlette import status
 
 from models import Location
 from schemas.activities import ActivityResponse
-from tests.conftest import session, client, user
+from tests.conftest import session, client, user, user_b
+import crud.activities as crud_activities
+
 
 
 # Get Activity
@@ -226,6 +228,56 @@ def test_join_activity_ok(session, client, user, activity_with_participants):
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert {"id": user.id, "username": user.username} in data["participants"]
+
+
+# Leave Activity
+
+def test_leave_activity_not_found(session, client, user, activity_with_participants):
+    response = client.delete("/activities/999/participants/1")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "activity" in response.text.lower()
+
+def test_leave_activity_user_not_found(session, client, user, activity_with_participants):
+    response = client.delete(f"/activities/{activity_with_participants.id}/participants/999")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "user does not exist" in response.text.lower()
+
+def test_leave_activity_not_participant(session, client, user, activity_with_participants):
+    response = client.delete(f"/activities/{activity_with_participants.id}/participants/{user.id}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "user does not participate" in response.text.lower()
+
+def test_leave_activity_not_owner(session, client, user_b, activity_with_participants):
+    participant = activity_with_participants.participants[0]
+    response = client.delete(f"/activities/{activity_with_participants.id}/participants/{participant.id}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "not allowed" in response.text.lower()
+
+def test_leave_activity_ok_participant(session, client, user, activity_with_participants):
+    response = client.post(f"/activities/{activity_with_participants.id}/participants")
+    assert response.status_code == status.HTTP_201_CREATED
+    response = client.delete(f"/activities/{activity_with_participants.id}/participants/{user.id}")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    for participant in data["participants"]:
+        assert participant["id"] != user.id
+
+def test_leave_activity_ok_owner(session, client, user, activity_with_participants):
+    activity_with_participants.creator_id = user.id
+    activity_with_participants = crud_activities.create(session, activity_with_participants)
+    participant_to_delete = activity_with_participants.participants[0]
+    response = client.delete(f"/activities/{activity_with_participants.id}/participants/{participant_to_delete.id}")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    for participant in data["participants"]:
+        assert participant["id"] != participant_to_delete.id
+
+
+
+
+
+
+
 
 
 

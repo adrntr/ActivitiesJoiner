@@ -93,14 +93,15 @@ async def join_activity(activity_id: int, session: Session = Depends(get_db),
 @router.delete("/{activity_id}/participants/{user_id}", status_code=status.HTTP_200_OK, response_model=ActivityResponse)
 async def leave_activity(activity_id: int, user_id: int, session: Session = Depends(get_db),
                          user: dict = Depends(get_current_user)):
+    current_user =  crud_users.get_by_id(session, user.get("user_id"))
     activity_model = crud_activities.get_by_id(session, activity_id)
     if not activity_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
-    user_model = crud_users.get_by_id(session, user["user_id"])
-    if not user_model:
+    user_to_remove = crud_users.get_by_id(session, user_id)
+    if not user_to_remove:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
-    if not user_model in activity_model.participants:
+    if not user_to_remove in activity_model.participants:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User does not participate")
-    if user_model.id != user.get("user_id") and user_model != activity_model.creator:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are not allowed to remove the user")
-    return crud_activities.delete_participant(session, activity_model, user_model)
+    if user_to_remove.id != current_user.id and current_user != activity_model.creator:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to remove the user")
+    return crud_activities.delete_participant(session, activity_model, user_to_remove)

@@ -75,6 +75,19 @@ def user(session: Session):
     app.dependency_overrides.clear()
 
 @pytest.fixture
+def user_b(session: Session):
+    def get_current_user_override():
+        return {"username": user.username, "user_id": user.id}
+
+    user = User(username="user_b_test", hashed_password=bcrypt_context.hash("fakepassword"))
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    app.dependency_overrides[get_current_user] = get_current_user_override
+    yield user
+    app.dependency_overrides.clear()
+
+@pytest.fixture
 def incorrect_user(session: Session):
     def get_current_user_override():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -100,16 +113,18 @@ def activity_without_participants(session: Session):
     return activity_model
 
 @pytest.fixture
-def activity_with_participants(session: Session, user: User):
+def activity_with_participants(session: Session):
     user_a = User(username="test_user_a", hashed_password=bcrypt_context.hash("test_password"))
     user_model_a = crud_users.create(session, user_a)
     user_b = User(username="test_user_b", hashed_password=bcrypt_context.hash("test_password"))
     user_model_b = crud_users.create(session, user_b)
+    user_creator = User(username="test_user_creator", hashed_password=bcrypt_context.hash("test_password"))
+    user_creator_model = crud_users.create(session, user_creator)
     location = Location(name="test location", latitude=37.7749, longitude=-122.4194)
     location_model = crud_locations.create(session, location)
     activity = Activity(description="test activity",
                         max_participants=10,
-                        creator_id=user.id,
+                        creator_id=user_creator_model.id,
                         location_id=location_model.id,
                         start_datetime=datetime.now(timezone.utc),
                         end_datetime=datetime.now(timezone.utc) + timedelta(hours=2))
