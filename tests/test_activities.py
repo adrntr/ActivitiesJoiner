@@ -165,12 +165,16 @@ def test_update_activity_not_owner(session, client, user, activity_without_parti
 
 
 def test_update_activity_max_participants_error(session, client, user, activity_with_participants):
+    activity_with_participants.creator_id = user.id
+    activity_with_participants = crud_activities.create(session, activity_with_participants)
     response = client.put(f"/activities/{activity_with_participants.id}", json={"max_participants": 1})
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "you cannot remove more people than there are" in response.text.lower()
 
 
 def test_update_activity_low_end_time(session, client, user, activity_with_participants):
+    activity_with_participants.creator_id = user.id
+    activity_with_participants = crud_activities.create(session, activity_with_participants)
     response = client.put(f"/activities/{activity_with_participants.id}",
                           json={"end_datetime": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()})
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -179,6 +183,8 @@ def test_update_activity_low_end_time(session, client, user, activity_with_parti
 
 @patch("services.locations.get_latitude_longitude", new_callable=AsyncMock)
 def test_update_activity_ok(mock_get_latitude_longitude, session, client, user, activity_with_participants):
+    activity_with_participants.creator_id = user.id
+    activity_with_participants = crud_activities.create(session, activity_with_participants)
     mock_get_latitude_longitude.return_value = (13.123, 13.123)
     start_datetime = datetime.now(timezone.utc) - timedelta(hours=2)
     end_datetime = datetime.now(timezone.utc) + timedelta(hours=2)
@@ -208,6 +214,8 @@ def test_join_activity_not_found(session, client, user):
 
 def test_join_activity_full(session, client, user, activity_with_participants):
     # Make the activity to be full
+    activity_with_participants.creator_id = user.id
+    activity_with_participants = crud_activities.create(session, activity_with_participants)
     response = client.put(f"/activities/{activity_with_participants.id}",
                           json={"max_participants": len(activity_with_participants.participants)})
     assert response.status_code == status.HTTP_200_OK
